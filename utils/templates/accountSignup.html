@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>{{ title}}</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<style type="text/css">
+		body {
+			margin: 0;
+			padding: 0;
+			background-color: #f4f4f4;
+			font-family: Arial, sans-serif;
+		}
+		.container {
+			max-width: 600px;
+			margin: 0 auto;
+			background-color: #ffffff;
+			padding: 20px;
+		}
+		h1 {
+			font-size: 24px;
+			font-weight: bold;
+			margin: 0 0 20px 0;
+		}
+		p {
+			font-size: 16px;
+			line-height: 1.5;
+			margin: 0 0 10px 0;
+		}
+		@media screen and (max-width: 600px) {
+			.container {
+				width: 100%;
+				padding: 10px;
+			}
+			h1 {
+				font-size: 20px;
+			}
+			p {
+				font-size: 14px;
+			}
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>{{ title }}</h1>
+		<p>Hi {{ name }}!</p>
+		<p>Congratulations!!! </p>
+		<p>Welcome to Transport Delivery Connect, the future of logistics.</p>
+		<p>Your account sign up is now complete. </p>
+		<p>If you have any questions or concerns, please contact our customer support team at support.</p>
+		<p>With Love,</p>
+		<p>The Transport Delivery Connect Team.</p>
+	</div>
+</body>
+</html>
