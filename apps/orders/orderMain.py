@@ -29,7 +29,7 @@ def generate_custom_id(prefix: str, n_digits: int) -> str:
 Create/make an order
 
 """
-@router.post('/order/', status_code=status.HTTP_201_CREATED, response_model= OrderOut)
+@router.post('/order', status_code=status.HTTP_201_CREATED, response_model= OrderOut)
 async def create_order(order: OrderIn, db: Session = Depends(get_db),current_user: UserOut = Depends(get_current_user)):
     custom_id = generate_custom_id("OD", 5)
    
@@ -51,7 +51,7 @@ async def create_order(order: OrderIn, db: Session = Depends(get_db),current_use
 """
 To get all order made
 """
-@router.get("/all_orders/", response_model=List[OrderOut])
+@router.get("/all_orders", response_model=List[OrderOut])
 async def get_all_orders(db:Session=Depends(get_db),current_user: UserOut = Depends(get_current_user)):
     orders = db.query(Orders).order_by(Orders.created_at).all()
     return orders
@@ -60,7 +60,7 @@ async def get_all_orders(db:Session=Depends(get_db),current_user: UserOut = Depe
 """
 To get all order made from a user
 """
-@router.get("/orders/", response_model=List[OrderOut])
+@router.get("/orders", response_model=List[OrderOut])
 async def get_all_orders(db:Session=Depends(get_db),current_user: Union[Users, ServiceProvider] = Depends(get_current_user)):
     if current_user.user_type == "user" :
         orders = db.query(Orders).order_by(Orders.created_at).filter(Orders.client_id == current_user.user_id).all()
@@ -79,7 +79,7 @@ To get all order made from a user which are
 still pending or without a bid or quote yet
 
 """
-@router.get("/orders_pending_user/", response_model=List[OrderOut])
+@router.get("/orders_pending_user", response_model=List[OrderOut])
 async def get_all_orders(db:Session=Depends(get_db),current_user: UserOut = Depends(get_current_user)):
     orders = db.query(Orders).order_by(Orders.created_at).filter(and_(Orders.client_id == current_user.user_id, Orders.status != "Pending")).all()
     if not orders:

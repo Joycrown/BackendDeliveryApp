@@ -27,7 +27,7 @@ def generate_custom_id(prefix: str, n_digits: int) -> str:
     return f"{prefix}{random_digits}"
 
 
-@router.post('/service_provider/signup/', status_code=status.HTTP_201_CREATED, response_model=ServiceProviderOut)
+@router.post('/service_provider/signup', status_code=status.HTTP_201_CREATED, response_model=ServiceProviderOut)
 async def new_user (user:ServiceProviderIn, db: Session = Depends(get_db)):
     check_email= db.query(ServiceProvider).filter(ServiceProvider.email == user.email).first()
     check_phone= db.query(ServiceProvider).filter(ServiceProvider.phone_no == user.phone_no).first()
@@ -52,7 +52,7 @@ async def new_user (user:ServiceProviderIn, db: Session = Depends(get_db)):
 """
 To fetch all users
 """
-@router.get('/service_provider/',response_model=List[ServiceProviderOut])
+@router.get('/service_provider',response_model=List[ServiceProviderOut])
 async def get_all_user( db: Session = Depends(get_db)):
   user_details = db.query(ServiceProvider).all()
   return user_details

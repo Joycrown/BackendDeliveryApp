@@ -28,7 +28,7 @@ def generate_custom_id(prefix: str, n_digits: int) -> str:
 """
 Create/make a quote
 """
-@router.post('/quote/', status_code=status.HTTP_201_CREATED, response_model=QuoteOut)
+@router.post('/quote', status_code=status.HTTP_201_CREATED, response_model=QuoteOut)
 async def create_quote(quote: QuoteIn, db: Session = Depends(get_db),current_user: ServiceProviderOut = Depends(get_current_user)):
     custom_id = generate_custom_id("QU", 5)
     check_order = db.query(Orders).filter(Orders.order_id == quote.order_id).first()
@@ -48,7 +48,7 @@ async def create_quote(quote: QuoteIn, db: Session = Depends(get_db),current_use
 """
 To get all quote made
 """
-@router.get("/quotes/",response_model=List[QuoteOut])
+@router.get("/quotes",response_model=List[QuoteOut])
 async def get_all_quote(db:Session=Depends(get_db),current_user: UserOut = Depends(get_current_user)):
     quotes = db.query(Quote).order_by(Quote.created_at).all()
     return quotes
@@ -59,7 +59,7 @@ async def get_all_quote(db:Session=Depends(get_db),current_user: UserOut = Depen
 """
 To get all quote made by current user (user)
 """
-@router.get("/current_user_quotes/",response_model=List[QuoteOut])
+@router.get("/current_user_quotes",response_model=List[QuoteOut])
 async def get_all_quote_by_current_id(db:Session=Depends(get_db),current_user: UserOut = Depends(current_login_user)):
     quotes = db.query(Quote).filter(and_(Quote.client_id == current_user.user_id, Quote.status == "Pending")).all()
     return quotes

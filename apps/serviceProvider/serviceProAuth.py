@@ -19,7 +19,7 @@ router = APIRouter(
 service Provider Login route
 
 """
-@router.post('/service_provider/login/', response_model=dict)
+@router.post('/service_provider/login', response_model=dict)
 def login(
     details: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
@@ -38,7 +38,7 @@ def login(
 To refresh token
 """
 
-@router.post('/provider/refresh/', response_model=dict)
+@router.post('/provider/refresh', response_model=dict)
 def refresh_token(
     refresh_token: str = Form(...),
     db: Session = Depends(get_db)
@@ -87,7 +87,7 @@ async def update_password(
 To get current user
 """
 
-@router.get('/current_service_provider/',response_model=ServiceProviderOut)
+@router.get('/current_service_provider',response_model=ServiceProviderOut)
 async def get_current_authenticated_user(current_user: Annotated[CurrentUser, Depends(get_current_user)]):
     if current_user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No servicer provider with: me found")
@@ -101,7 +101,7 @@ User route
 To reset users password
 """
 
-@router.post('/forgot_password/service_provider/')
+@router.post('/forgot_password/service_provider')
 async def password_reset(email: EmailReset, db: Session = Depends(get_db)):
     email_exist = db.query(ServiceProvider).filter(ServiceProvider.email == email.email).first()
     if not email_exist:
@@ -113,10 +113,6 @@ async def password_reset(email: EmailReset, db: Session = Depends(get_db)):
     reset_token = create_password_reset_token(data={ "email": email_exist.email})
     reset_link = f"https://localhost/{reset_token}"
 
-    response_data: {
-        "message": "Password reset token sent to the registered email",
-        "reset_link": reset_link
-    }
 
     return reset_link
 

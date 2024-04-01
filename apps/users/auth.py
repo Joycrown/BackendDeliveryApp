@@ -51,7 +51,7 @@ def login(
 To refresh token
 """
 
-@router.post('/token/refresh/', response_model=dict)
+@router.post('/token/refresh', response_model=dict)
 def refresh_token(
     refresh_token: str = Form(...),
     db: Session = Depends(get_db)
@@ -81,7 +81,7 @@ def refresh_token(
 """
 To Update User's Password
 """
-@router.put('/update-password/')
+@router.put('/update-password')
 async def update_password(
     password_data: UpdatePassword,
     current_user: Union[Users, ServiceProvider] = Depends(get_current_user),
@@ -107,7 +107,7 @@ async def update_password(
 """
 To get current user
 """
-@router.get('/current_user/', response_model=Union[UserOut, ServiceProviderOut])
+@router.get('/current_user', response_model=Union[UserOut, ServiceProviderOut])
 async def get_current_authenticated_user(current_user: Union[UserOut, ServiceProviderOut] = Depends(get_current_user)):
     if current_user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No user with: me found")
@@ -120,7 +120,7 @@ User route
 To reset users password
 """
 
-@router.post('/forgot_password/')
+@router.post('/forgot_password')
 async def password_reset(email: EmailReset, db: Session = Depends(get_db)):
     # Check if the email exists for a user
     user = db.query(Users).filter(Users.email == email.email).first()
@@ -139,7 +139,7 @@ async def password_reset(email: EmailReset, db: Session = Depends(get_db)):
             )
 
     reset_token = create_password_reset_token(data={"email": user.email, "user_type": user_type})
-    reset_link = f"http://localhost:5173/set_password/{reset_token}/"
+    reset_link = f"http://localhost:5173/set_password/{reset_token}"
     await password_rest_email("Password Reset", user.email,{
       "title": "Password Rest",
       "name": user.full_name,
@@ -154,7 +154,7 @@ async def password_reset(email: EmailReset, db: Session = Depends(get_db)):
 User route
 To set new user's password
 """
-@router.put('/set_password/')
+@router.put('/set_password')
 async def password(data: ResetPassword, db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
