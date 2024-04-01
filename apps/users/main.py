@@ -27,7 +27,7 @@ def generate_custom_id(prefix: str, n_digits: int) -> str:
     return f"{prefix}{random_digits}"
 
 
-@router.post('/user/signup', status_code=status.HTTP_201_CREATED, response_model=UserOut)
+@router.post('/user/signup/', status_code=status.HTTP_201_CREATED, response_model=UserOut)
 async def new_user (user:UserIn, db: Session = Depends(get_db)):
     check_email= db.query(Users).filter(Users.email == user.email).first()
     if check_email : 
