@@ -51,7 +51,7 @@ def login(
 To refresh token
 """
 
-@router.post('/token/refresh', response_model=dict)
+@router.post('/token/refresh/', response_model=dict)
 def refresh_token(
     refresh_token: str = Form(...),
     db: Session = Depends(get_db)
