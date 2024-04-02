@@ -22,9 +22,9 @@ User sign up
 
 """
 def generate_custom_id(prefix: str, n_digits: int) -> str:
-    """Generate a custom ID with a given prefix and a certain number of random digits"""
-    random_digits = ''.join([str(random.randint(0,9)) for i in range(n_digits)])
-    return f"{prefix}{random_digits}"
+  """Generate a custom ID with a given prefix and a certain number of random digits"""
+  random_digits = ''.join([str(random.randint(0,9)) for i in range(n_digits)])
+  return f"{prefix}{random_digits}"
 
 
 @router.post('/user/signup/', status_code=status.HTTP_201_CREATED, response_model=UserOut)
@@ -39,11 +39,11 @@ async def new_user (user:UserIn, db: Session = Depends(get_db)):
     db.add(new_account)
     db.commit()
     db.refresh(new_account)
-    await account_purchased("Registration Successful", user.email, {
-    "title": "Account Purchase Successful",
-    "name": user.full_name,
+  #   await account_purchased("Registration Successful", user.email, {
+  #   "title": "Account Purchase Successful",
+  #   "name": user.full_name,
     
-  })
+  # })
     return  new_account
 
 """
@@ -89,4 +89,24 @@ async def update_user(
     db.refresh(existing_user)
 
     return existing_user
+
+
+"To delete all users"
+@router.delete("/users")
+async def delete_order( db: Session = Depends(get_db)):
+    # Check if the order exists
+    users = db.query(Users).all()
+    if not users:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No user found")
+
+    # Check if the current user is the owner of the order (optional)
+  
+    # Delete the order from the database
+    for user in users:
+      db.delete(user)
+    db.commit()
+
+    return {"message": f"Users deleted successfully"}
+
+
 
