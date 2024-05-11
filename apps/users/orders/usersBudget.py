@@ -6,7 +6,7 @@ from schemas.user.usersSchema import UserOut
 from apps.users.auth import get_current_user
 from config.database import get_db
 from sqlalchemy.orm import Session 
-from sqlalchemy import and_
+from sqlalchemy import and_,desc
 from typing import List,Union, Dict
 
 
@@ -60,8 +60,8 @@ quotes reacted to made from a user
 @router.get("/orders", response_model=Dict[str, Union[List[BudgetOut], List[QuoteOut],int]])
 async def get_all_orders_reacted_to_for_current_user(db:Session=Depends(get_db),current_user: Union[Users, ServiceProvider] = Depends(get_current_user)):
     if current_user.user_type == "user" :
-        budget = db.query(Budget).order_by(Budget.created_at).filter(Budget.client_id == current_user.user_id).all()
-        quote = db.query(Quote).filter(and_(Quote.client_id == current_user.user_id, Quote.status=="Pending")).all()
+        budget = db.query(Budget).order_by(desc(Budget.created_at)).filter(Budget.client_id == current_user.user_id).all()
+        quote = db.query(Quote).order_by(desc(Quote.created_at)).filter(and_(Quote.client_id == current_user.user_id, Quote.status=="Pending")).all()
         total_count = len(budget) + len(quote)
     else: 
         raise HTTPException(status_code=404, detail="No orders found")
@@ -75,7 +75,7 @@ To get all order made from a user
 """
 @router.get("/orders/me", response_model=List[OrderOut])
 async def get_all_orders(db:Session=Depends(get_db),current_user: UserOut = Depends(get_current_user)):
-    orders = db.query(Orders).order_by(Orders.created_at).filter(and_(Orders.client_id == current_user.user_id)).all()
+    orders = db.query(Orders).order_by(desc(Orders.created_at)).filter(and_(Orders.client_id == current_user.user_id)).all()
     if not orders:
         raise HTTPException(status_code=404, detail="No current order(S) found")
     return orders
@@ -215,7 +215,7 @@ To fetch assigned orders for a user/client
 async def get_all_budget_orders_for_current_user(db:Session=Depends(get_db),current_user: UserOut = Depends(get_current_user)):
     if current_user.user_type != "user":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission for this action")
-    orders = db.query(Orders).order_by(Orders.created_at).filter(and_(Orders.client_id == current_user.user_id, Orders.status =="Pending")).all()
+    orders = db.query(Orders).order_by(desc(Orders.created_at)).filter(and_(Orders.client_id == current_user.user_id, Orders.status =="Pending")).all()
     if not orders:
         raise HTTPException(status_code=404, detail="No current order found")
     return orders
@@ -229,7 +229,7 @@ To fetch completed orders for a user/client
 async def get_all_budget_orders_for_current_user(db:Session=Depends(get_db),current_user: UserOut = Depends(get_current_user)):
     if current_user.user_type != "user":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission for this action")
-    orders = db.query(Orders).order_by(Orders.created_at).filter(and_(Orders.client_id == current_user.user_id, Orders.status =="Completed")).all()
+    orders = db.query(Orders).order_by(desc(Orders.created_at)).filter(and_(Orders.client_id == current_user.user_id, Orders.status =="Completed")).all()
     if not orders:
         raise HTTPException(status_code=404, detail="No current order found")
     return orders

@@ -1,14 +1,12 @@
 from fastapi import  Depends,HTTPException,status,APIRouter
 import random
-from models.users.usersModel import Users, Orders,Quote, OrderType, Budget
-from schemas.serviceProvider.serviceProviderSchema import ServiceProviderOut
-from schemas.order.orderSchema import OrderIn, OrderOut,QuoteIn,QuoteUpdate,QuoteOut, BudgetOut
+from models.users.usersModel import Orders,Quote, OrderType
+from schemas.order.orderSchema import OrderOut,QuoteOut
 from schemas.user.usersSchema import UserOut
-# from apps.serviceProvider.serviceProviderOauth import get_current_user
 from config.database import get_db
 from sqlalchemy.orm import Session 
-from sqlalchemy import and_
-from typing import List, Union
+from sqlalchemy import and_,desc
+from typing import List
 from apps.users.auth import get_current_user 
 
 
@@ -31,7 +29,7 @@ To get all quote made
 """
 @router.get("/quotes",response_model=List[QuoteOut])
 async def get_all_quote(db:Session=Depends(get_db),current_user: UserOut = Depends(get_current_user)):
-  quotes = db.query(Quote).order_by(Quote.created_at).all()
+  quotes = db.query(Quote).order_by(desc(Quote.created_at)).all()
   return quotes
 
 
@@ -83,7 +81,7 @@ To get all quote made by current user (user)
 async def get_all_quote_by_current_user(db:Session=Depends(get_db),current_user: UserOut  = Depends(get_current_user)):
     if current_user.user_type != "user":
       raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
-    quotes = db.query(Quote).filter(and_(Quote.client_id == current_user.user_id, Quote.status == "Pending")).all()
+    quotes = db.query(Quote).order_by(desc(Quote.created_at)).filter(and_(Quote.client_id == current_user.user_id, Quote.status == "Pending")).all()
     return quotes
 
 
