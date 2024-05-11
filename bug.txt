@@ -1,3 +1,34 @@
 phone no field
 created_time stamp for response model
 no of pieces from the order is not included yet both on the frontend and backend.
+
+
+//////
+
+the flow of the process for orders created 
+
+1. Budget
+User create an order of type budget and the status is "No Reaction".
+The system will send a notification to all service providers for the new order.
+Intersted Service providers accept the budget, changing the status of the order to "Accepted"
+The user then go through the budget from the budget table to assign an order to a desire service provider 
+by changing the order.status to "Pending". 
+When the order is delivered or received the user then sends a in settlement to change order status to "Completed"
+
+
+2. Quote
+User create an order of type quote and the status is "No Reaction".
+The system will send a notification to all service providers for the new order.
+Intersted Service providers sends in their quote, changing the status of the order to "Accepted"
+The user then go through the budget from the quote table to assign an order to a desire service provider 
+by changing the order.status to "Pending". 
+When the order is delivered or received the user then sends a in settlement to change order status to "Completed"
+
+
+////////
+
+
+
+Rating system
+Payment (Stripe, Paypal)
+Verfiation

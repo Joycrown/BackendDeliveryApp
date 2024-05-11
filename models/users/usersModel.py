@@ -1,5 +1,5 @@
 from config.database import Base
-from sqlalchemy import Column, Enum, String,Numeric,Float,Boolean,Date,ForeignKey
+from sqlalchemy import Column, Enum, String,Numeric,JSON,Boolean,Date,ForeignKey,Integer
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql.expression import text
 from sqlalchemy.orm import relationship
@@ -93,6 +93,7 @@ class Orders(Base):
     quote_id = Column(String,ForeignKey("quotes.quote_id"))
     budget = Column(String, server_default="N/A")
     status = Column(String, nullable=False, server_default="No Reaction")
+    rejectedServiceProvider = Column(JSON)  # Add this column to save lists of service_provider_ids
     is_budget =Column(Boolean,  default=True)
     quotes = relationship("Quote", back_populates="order",foreign_keys=[quote_id])
     client = relationship("Users",foreign_keys=[client_id])
@@ -107,9 +108,9 @@ class Quote(Base):
     quote_id = Column(String, unique=True, primary_key=True, nullable=False)
     service_provider_id = Column(String, ForeignKey("serviceProvider.service_provider_id",ondelete="CASCADE"), nullable=False)
     order_id = Column(String, ForeignKey("orders.order_id",ondelete="CASCADE"), nullable=False)
-    quote_amount = Column(Float, nullable=False)
+    quote_amount = Column(String, nullable=False)
     is_accepted = Column(Boolean, default=False)
-    status = Column(String, nullable=False, server_default='pending')
+    status = Column(String, nullable=False, server_default='Pending')
     client_id = Column(String, ForeignKey("users.user_id"), nullable=False)
     created_at = Column(Date, nullable=False, server_default=text('now()'))
 
@@ -117,3 +118,39 @@ class Quote(Base):
     # Define a relationship to the Orders table
     order = relationship("Orders", foreign_keys=[order_id])
     service_provider= relationship("ServiceProvider", foreign_keys=[service_provider_id])
+
+
+
+class Budget(Base):
+    __tablename__ = 'budgets'
+
+    budget_id = Column(String, unique=True, primary_key=True, nullable=False)
+    service_provider_id = Column(String, ForeignKey("serviceProvider.service_provider_id",ondelete="CASCADE"), nullable=False)
+    order_id = Column(String, ForeignKey("orders.order_id",ondelete="CASCADE"), nullable=False)
+    status = Column(String, nullable=False)
+    amount = Column(String, nullable=False)
+    client_id = Column(String, ForeignKey("users.user_id"), nullable=False)
+    created_at = Column(Date, nullable=False, server_default=text('now()'))
+    order = relationship("Orders", foreign_keys=[order_id])
+    service_provider= relationship("ServiceProvider", foreign_keys=[service_provider_id])
+    
+    # Define a relationship to the Orders table
+    order = relationship("Orders", foreign_keys=[order_id])
+    service_provider= relationship("ServiceProvider", foreign_keys=[service_provider_id])
+
+
+
+
+
+class RejectedOrder(Base):
+    __tablename__ = 'rejectedOrder'
+
+    id = Column(Integer,primary_key=True,)
+    service_provider_id = Column(String, ForeignKey("serviceProvider.service_provider_id",ondelete="CASCADE"), nullable=False)
+    order_id = Column(String, ForeignKey("orders.order_id",ondelete="CASCADE"), nullable=False)
+    created_at = Column(Date, nullable=False, server_default=text('now()'))
+    status = Column(String, nullable=False)
+    order = relationship("Orders", foreign_keys=[order_id])
+    service_provider= relationship("ServiceProvider", foreign_keys=[service_provider_id])
+
+

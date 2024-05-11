@@ -17,7 +17,7 @@ REFRESH_TOKEN_EXPIRE_DAYS = settings.refresh_token_expire_days
 RESET_PASSWORD_TOKEN_EXPIRE_MINUTES = settings.reset_password_token_expire_minutes
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='service_provider/login/')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
 
 def create_access_token(data: dict):
     to_encode= data.copy()

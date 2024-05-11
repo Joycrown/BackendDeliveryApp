@@ -65,9 +65,12 @@ class OrderOut(BaseModel):
     is_completed: bool
     quote_id: str
     budget: str
+    status: str
     client: UserOut
     quote_id: Optional[str]
+    # rejectedServiceProvider: List[str] = []
     carrier: Optional[ServiceProviderOut]
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -79,8 +82,17 @@ class QuoteOut(BaseModel):
     order_id: str
     client_id: str
     order : Optional[OrderOut]
-    quote_amount : float
+    quote_amount : str
     is_accepted: bool
+    created_at: datetime
+
+class BudgetOut(BaseModel):
+    budget_id : str
+    service_provider: Optional[ServiceProviderOut]
+    order_id: str
+    order : Optional[OrderOut]
+    amount : str
+    status: str
     created_at: datetime
 
 
@@ -88,7 +100,7 @@ class QuoteOut(BaseModel):
 
 class QuoteIn(BaseModel):
     order_id: str
-    quote_amount: float
+    quote_amount: str
 
 
 class QuoteUpdate(BaseModel):
