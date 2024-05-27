@@ -1,6 +1,5 @@
-from datetime import datetime
-import email
-from typing import Optional,List
+
+from typing import Optional
 from pydantic import BaseModel, EmailStr
 
 
@@ -52,6 +51,7 @@ class ServiceProviderOut(BaseModel):
     gender: str
     city: str
     user_type: str
+    is_verified: bool
     street_address: str
     country: str
 

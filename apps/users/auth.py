@@ -7,9 +7,9 @@ from utils.users.utills import verify, hash
 from apps.users.oauth import get_current_user, create_password_reset_token, create_tokens, verify_refresh_token,verify_access_token_password_reset
 from schemas.user.usersSchema import UserOut
 from schemas.serviceProvider.serviceProviderSchema import ServiceProviderOut
-from utils.users.email import password_rest_email, account_purchased
+from utils.users.email import password_rest_email
 from schemas.user.UserAuth import UpdatePassword, EmailReset,ResetPassword
-from typing import Annotated, Union
+from typing import Union
 
 router = APIRouter(
     tags=["Users Auth"]
@@ -140,11 +140,11 @@ async def password_reset(email: EmailReset, db: Session = Depends(get_db)):
 
     reset_token = create_password_reset_token(data={"email": user.email, "user_type": user_type})
     reset_link = f"http://localhost:5173/set_password/{reset_token}"
-    # await password_rest_email("Password Reset", user.email,{
-    #   "title": "Password Rest",
-    #   "name": user.full_name,
-    #   "reset_link": reset_link
-    # })
+    await password_rest_email("Password Reset", user.email,{
+      "title": "Password Rest",
+      "name": user.full_name,
+      "reset_link": reset_link
+    })
     
     return reset_link
 

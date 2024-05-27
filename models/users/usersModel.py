@@ -4,6 +4,7 @@ from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql.expression import text
 from sqlalchemy.orm import relationship
 from enum import Enum 
+from sqlalchemy.sql.sqltypes import Enum as PgEnum
 
 
 
@@ -25,6 +26,7 @@ class Users(Base):
     country = Column(String,nullable=False,server_default='N/A')
     password = Column(String,nullable=False)
     phone_no = Column(String,nullable=False)
+    is_verified = Column(Boolean,nullable=True,server_default='false')
     user_type = Column(String,nullable=False, server_default="user")
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default= text('now()'))
 
@@ -48,7 +50,8 @@ class ServiceProvider(Base):
     street_address = Column(String,nullable=False)
     city = Column(String,nullable=False)
     country = Column(String,nullable=False)
-    rating = Column(String,nullable=False,server_default="N")
+    stripe_account = Column(String, nullable=False, server_default="N/A")
+    rating = Column(String,nullable=False,server_default="N/A")
     gender = Column(String,nullable=False)
     user_type = Column(String,nullable=True, server_default="service provider")
     is_verified = Column(Boolean,nullable=True,server_default='false')
@@ -92,6 +95,7 @@ class Orders(Base):
     client_id = Column(String,ForeignKey("users.user_id"))
     quote_id = Column(String,ForeignKey("quotes.quote_id"))
     budget = Column(String, server_default="N/A")
+    payment_intent_id = Column(String, server_default="N/A")
     status = Column(String, nullable=False, server_default="No Reaction")
     rejectedServiceProvider = Column(JSON)  # Add this column to save lists of service_provider_ids
     is_budget =Column(Boolean,  default=True)
@@ -133,10 +137,8 @@ class Budget(Base):
     created_at = Column(Date, nullable=False, server_default=text('now()'))
     order = relationship("Orders", foreign_keys=[order_id])
     service_provider= relationship("ServiceProvider", foreign_keys=[service_provider_id])
-    
-    # Define a relationship to the Orders table
-    order = relationship("Orders", foreign_keys=[order_id])
-    service_provider= relationship("ServiceProvider", foreign_keys=[service_provider_id])
+    client= relationship("Users", foreign_keys=[client_id])
+
 
 
 
@@ -154,3 +156,19 @@ class RejectedOrder(Base):
     service_provider= relationship("ServiceProvider", foreign_keys=[service_provider_id])
 
 
+
+
+class PaymentStatus(str, PgEnum):
+    PAID_TO_COMPANY = "escrow"
+    COMPLETED = "completed"
+
+class PaymentIntent(Base):
+    __tablename__ = "payment_intents"
+
+    id = Column(String, primary_key=True, index=True)
+    amount = Column(Integer, nullable=False)
+    currency = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    customer_email = Column(String, nullable=False)
+    transporter_email = Column(String, nullable=False)
+    status = Column(String, nullable=False)

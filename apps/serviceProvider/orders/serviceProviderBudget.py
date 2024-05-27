@@ -5,7 +5,7 @@ from schemas.order.orderSchema import OrderOut,ServiceProviderOut,BudgetOut,Quot
 from apps.users.auth import get_current_user
 from config.database import get_db
 from sqlalchemy.orm import Session 
-from sqlalchemy import and_,desc
+from sqlalchemy import and_,desc,not_
 from typing import List, Union
 
 
@@ -45,9 +45,18 @@ To get all budget order made
 async def get_all_budget_orders_from_all_users(db:Session=Depends(get_db),current_user: ServiceProvider = Depends(get_current_user)):
     if current_user.user_type  != "service provider":
         raise HTTPException(status_code=403, detail="Not allowed")
-    rejected_order_ids = [rejected_order.order_id for rejected_order in db.query(RejectedOrder).filter(RejectedOrder.service_provider_id == current_user.service_provider_id)]
-    orders = db.query(Orders).order_by(desc(Orders.created_at)).filter(and_(Orders.order_type == "budget",Orders.status == "No Reaction", ~Orders.order_id.in_(rejected_order_ids)))
-  
+    rejected_order_ids = db.query(RejectedOrder.order_id).filter(
+        RejectedOrder.service_provider_id == current_user.service_provider_id
+    ).subquery()
+
+    # Fetch orders that are of type 'budget' and status 'No Reaction' excluding rejected orders
+    orders = db.query(Orders).filter(
+        and_(
+            Orders.order_type == "budget",
+            Orders.status == "No Reaction",
+            not_(Orders.order_id.in_(rejected_order_ids))
+        )
+    ).order_by(desc(Orders.created_at)).all()
     return orders
 
 
@@ -58,27 +67,20 @@ To get all quote orders made
 async def get_all_quote_orders_from_all_users(db:Session=Depends(get_db),current_user: ServiceProvider = Depends(get_current_user)):
     if current_user.user_type  != "service provider":
         raise HTTPException(status_code=403, detail="Not allowed")
-    rejected_order_ids = [rejected_order.order_id for rejected_order in db.query(RejectedOrder).filter(RejectedOrder.service_provider_id == current_user.service_provider_id)]
-    quotes_id = [quote_id.order_id for quote_id in db.query(Quote).filter(Quote.order_id == Orders.order_id)]
-    orders = db.query(Orders).order_by(desc(Orders.created_at)).filter(and_(Orders.order_type == "quote",Orders.status == "No Reaction", ~Orders.order_id.in_(rejected_order_ids),~Orders.order_id.in_(quotes_id)))
+    rejected_order_ids = db.query(RejectedOrder.order_id).filter(
+        RejectedOrder.service_provider_id == current_user.service_provider_id
+    ).subquery()
+    quote_ids = db.query(Quote.order_id).filter(
+        Quote.service_provider_id == current_user.service_provider_id
+    ).subquery()
+    orders = db.query(Orders).order_by(desc(Orders.created_at)).filter(and_(Orders.order_type == "quote",Orders.status == "No Reaction", 
+    not_(Orders.order_id.in_(rejected_order_ids)),
+    not_(Orders.order_id.in_(quote_ids))
+    ))
 
     return orders
 
 
-
-
-
-# """
-# To fetch the order by type (Budget) for a user
-# """
-# @router.get("/orders/budget", response_model=List[OrderOut])
-# async def get_all_budget_orders_for_current_user(db:Session=Depends(get_db),current_user: ServiceProvider = Depends(get_current_user)):
-#     if current_user.user_type != "service provider":
-#         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission for this action")
-#     orders = db.query(Orders).order_by(Orders.created_at).filter(and_(Orders.client_id == current_user.service_provider_id, Orders.order_type =="budget")).all()
-#     if not orders:
-#         raise HTTPException(status_code=404, detail="No current order found")
-#     return orders
 
 
 """
@@ -136,10 +138,10 @@ async def reject_orders_by_service_provider(order_id: str, db: Session = Depends
     order = db.query(Orders).filter(Orders.order_id == order_id).first()
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No order with this ID: {order_id}")
-    if order.status != "No Reaction":
-        raise HTTPException(status_code=400, detail="The Order has been accepted/assigned")
     if current_user.user_type != "service provider":
         raise HTTPException(status_code=400, detail="Not allowed")
+    if order.status != "No Reaction":
+        raise HTTPException(status_code=400, detail="The Order has been accepted/assigned")
     rejected_order= RejectedOrder(service_provider_id=current_user.service_provider_id,order_id=order_id,status="Rejected")
     
     db.add(rejected_order)
@@ -165,7 +167,7 @@ async def get_all_pending_orders(db:Session=Depends(get_db),current_user: Servic
     ).all()
     # Query Quote orders
     quote_orders = db.query(Quote).filter(
-        Quote.status == "Accepted",
+        Quote.status == "Pending",
         Quote.service_provider_id == current_user.service_provider_id
     ).all()
     # Combine both types of orders

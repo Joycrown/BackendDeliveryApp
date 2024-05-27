@@ -1,14 +1,11 @@
 from fastapi import  Depends,HTTPException,status,APIRouter
 import random
-from models.users.usersModel import Users, Orders,Quote, OrderType, Budget
+from models.users.usersModel import Orders,Quote, OrderType
 from schemas.serviceProvider.serviceProviderSchema import ServiceProviderOut
-from schemas.order.orderSchema import OrderIn, OrderOut,QuoteIn,QuoteUpdate,QuoteOut, BudgetOut
-from schemas.user.usersSchema import UserOut
-# from apps.serviceProvider.serviceProviderOauth import get_current_user
+from schemas.order.orderSchema import QuoteIn,QuoteUpdate,QuoteOut
 from config.database import get_db
 from sqlalchemy.orm import Session 
 from sqlalchemy import and_
-from typing import List, Union
 from apps.users.auth import get_current_user 
 
 

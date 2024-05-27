@@ -1,6 +1,5 @@
-from datetime import datetime
-import email
-from typing import Optional,List
+
+from typing import Optional
 from pydantic import BaseModel, EmailStr
 
 
@@ -40,7 +39,8 @@ class UserOut(BaseModel):
     phone_no: str
     company_name: str
     company_url: str
-    # created_at: datetime
+    is_verified:bool
+    
 
 
     class Config:

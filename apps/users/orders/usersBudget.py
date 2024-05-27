@@ -75,7 +75,19 @@ To get all order made from a user
 """
 @router.get("/orders/me", response_model=List[OrderOut])
 async def get_all_orders(db:Session=Depends(get_db),current_user: UserOut = Depends(get_current_user)):
-    orders = db.query(Orders).order_by(desc(Orders.created_at)).filter(and_(Orders.client_id == current_user.user_id)).all()
+    orders = db.query(Orders).order_by(desc(Orders.created_at)).filter(and_(Orders.client_id == current_user.user_id, Orders.status == "No Reaction")).all()
+    if not orders:
+        raise HTTPException(status_code=404, detail="No current order(S) found")
+    return orders
+
+
+
+"""
+To get all completed order made from a user gor the history page
+"""
+@router.get("/orders/history", response_model=List[OrderOut])
+async def get_all_orders(db:Session=Depends(get_db),current_user: UserOut = Depends(get_current_user)):
+    orders = db.query(Orders).order_by(desc(Orders.created_at)).filter(and_(Orders.client_id == current_user.user_id, Orders.status == "completed")).all()
     if not orders:
         raise HTTPException(status_code=404, detail="No current order(S) found")
     return orders
@@ -156,20 +168,43 @@ To Assigned an order with a budget from a signed in user (user)
 """
 
 
-@router.post('/pend_budget/{budget_id}', response_model=OrderOut)
-async def accept_budget_by_current_user(budget_id: str, db: Session = Depends(get_db), current_user: UserOut = Depends(get_current_user)):
-    budget = db.query(Budget).filter(Budget.budget_id == budget_id).first()
-    if not budget:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No response made with this ID: {budget_id}")
-    order = db.query(Orders).filter(Orders.order_id == budget.order_id).first()
-    
-    if order.status != "Accepted":
-        raise HTTPException(status_code=400, detail="The Order has no bidding budget/ has been assigned")
-    
-    order.is_assigned = True
-    order.assigned_to = order.bidding_budget
-    order.status ="Pending"
-    db.delete(budget)
+@router.post('/accept/{item_id}', response_model=OrderOut)
+async def accept_item_by_current_user(
+    item_id: str, 
+    db: Session = Depends(get_db), 
+    current_user: UserOut = Depends(get_current_user)
+):
+    budget = db.query(Budget).filter(Budget.budget_id == item_id).first()
+    quote = db.query(Quote).filter(Quote.quote_id == item_id).first()
+
+    if budget:
+        order = db.query(Orders).filter(Orders.order_id == budget.order_id).first()
+        if not order:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No order with ID: {budget.order_id} found")
+        if order.status != "Accepted":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The Order has no bidding budget/has been assigned")
+        order.is_assigned = True
+        order.assigned_to = order.bidding_budget
+        order.status = "Pending"
+        db.delete(budget)
+    elif quote:
+        order = db.query(Orders).filter(Orders.order_id == quote.order_id).first()
+        if not order:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No order with ID: {quote.order_id} found")
+        if order.order_type != OrderType.quote:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only quote orders can have quotes")
+        if quote.client_id != current_user.user_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"You cannot accept this quote")
+        order.is_assigned = True
+        order.assigned_to = quote.service_provider_id
+        quote.is_accepted = True
+        quote.status = "Accepted"
+        order.status = "Pending"
+        order.budget = quote.quote_amount
+        order.quote_id = item_id
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No budget or quote with ID: {item_id} found")
+
     db.commit()
     db.refresh(order)
     return order
@@ -194,10 +229,32 @@ async def reject_budget_by_current_user(budget_id: str, db: Session = Depends(ge
     return {"detail":"Budget Rejection Successful"}
 
 
+
+"""
+To check a budget and quote details
+"""
+
+@router.get('/details/{item_id}', response_model=Union[BudgetOut, QuoteOut])
+async def get_details_by_id(
+    item_id: str, 
+    db: Session = Depends(get_db), 
+    current_user: UserOut = Depends(get_current_user)
+):
+    budget = db.query(Budget).filter(Budget.budget_id == item_id).first()
+    quote = db.query(Quote).filter(Quote.quote_id == item_id).first()
+
+    if budget:
+        return budget
+    elif quote:
+        return quote
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No budget or quote with ID: {item_id} found")
+
+
 """
 To get budget from the budget table reacted to by service_provider
 """
-@router.get("/budget/accepted_service_provider", response_model=List[BudgetOut])
+@router.get("/budgets/accepted_service_provider", response_model=List[BudgetOut])
 async def get_all_budgets_reacted_to(db:Session=Depends(get_db),current_user: UserOut = Depends(get_current_user)):
     if current_user.user_type  != "user":
         raise HTTPException(status_code=403, detail="Not allowed")

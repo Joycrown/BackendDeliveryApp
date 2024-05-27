@@ -8,7 +8,7 @@ from apps.users import main, auth
 from apps.users.orders import usersBudget, usersQuote
 from apps.serviceProvider import serviceProAuth, serviceProviderMain
 from apps.serviceProvider.orders import serviceProviderQuote
-
+from apps.escrowPayment import payment
 
 
 app = FastAPI()
@@ -28,7 +28,7 @@ app.add_middleware(
 app.include_router(main.router)
 app.include_router(auth.router)
 app.include_router(serviceProviderMain.router)
-# app.include_router(serviceProAuth.router)
+app.include_router(payment.router)
 app.include_router(serviceProviderBudget.router)
 app.include_router(serviceProviderQuote.router)
 app.include_router(usersQuote.router)

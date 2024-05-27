@@ -1,7 +1,6 @@
 from datetime import datetime
-import email
-from typing import Optional,List
-from pydantic import BaseModel, EmailStr
+from typing import Optional
+from pydantic import BaseModel
 from schemas.user.usersSchema import UserOut
 from schemas.serviceProvider.serviceProviderSchema import ServiceProviderOut
 
@@ -64,6 +63,7 @@ class OrderOut(BaseModel):
     order_type: str
     is_completed: bool
     quote_id: str
+    payment_intent_id:str
     budget: str
     status: str
     client: UserOut
@@ -90,6 +90,7 @@ class BudgetOut(BaseModel):
     budget_id : str
     service_provider: Optional[ServiceProviderOut]
     order_id: str
+    client: Optional[UserOut]
     order : Optional[OrderOut]
     amount : str
     status: str
