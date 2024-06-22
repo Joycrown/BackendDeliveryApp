@@ -26,3 +26,16 @@ async def password_rest_email(subject: str, email_to: str, body:dict):
     )
     fm = FastMail(conf)
     await fm.send_message(message, template_name="password_reset.html")
+
+
+
+# Send Mail to verify account
+async def verify_account_email(subject: str, email_to: str, body:dict):
+    message= MessageSchema(
+        subject=subject,
+        recipients= [email_to],
+        template_body= body,
+        subtype="html"
+    )
+    fm = FastMail(conf)
+    await fm.send_message(message, template_name="email_verification.html")

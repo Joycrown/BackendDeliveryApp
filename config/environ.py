@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     email_port:int
     email_server: str
     stripe_secret_key : str
+    local_server_host :str
+    production_server : str 
+    production_server_host : str 
+   
     
     class Config:
         env_file= ".env"

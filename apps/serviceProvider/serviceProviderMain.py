@@ -68,21 +68,22 @@ async def get_user(id: str, db: Session = Depends(get_db),current_user: ServiceP
   return user_details
 
 
+
+
 """
 To Update a single user
 """
 
-@router.put('/service_provider/{service_provider_id}', response_model=ServiceProviderOut)
-async def update_user(
-    service_provider_id: str,
+@router.patch('/update/service_provider', response_model=ServiceProviderOut)
+async def update_service_provider(
     user_update: ServiceProviderUpdate,
     db: Session = Depends(get_db),
     current_user: ServiceProviderOut = Depends(get_current_user)
 ):
-    existing_user = db.query(ServiceProvider).filter(ServiceProvider.service_provider_id == service_provider_id).first()
+    existing_user = db.query(ServiceProvider).filter(ServiceProvider.service_provider_id == current_user.service_provider_id).first()
 
     if not existing_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {service_provider_id} not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {current_user.service_provider_id} not found")
 
     # Check if the new phone number is already in use
     if user_update.phone_no and user_update.phone_no != existing_user.phone_no:

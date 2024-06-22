@@ -1,5 +1,4 @@
-
-from typing import Optional
+from typing import Optional,List
 from pydantic import BaseModel, EmailStr
 
 
@@ -19,8 +18,7 @@ class UserIn(BaseModel):
 
 class UserUpdate(BaseModel):
     full_name: Optional[str]
-    type: Optional[str]
-    phone_no: Optional [str]
+    phone_no: Optional[str]
     company_name: Optional[str]
     company_url: Optional[str]
 
@@ -37,6 +35,7 @@ class UserOut(BaseModel):
     email: str
     user_type: str
     phone_no: str
+    profile_picture: str
     company_name: str
     company_url: str
     is_verified:bool
@@ -45,3 +44,6 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+

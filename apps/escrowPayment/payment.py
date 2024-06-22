@@ -6,20 +6,16 @@ from config import stripe
 from models.users.usersModel import ServiceProvider,Orders
 from schemas.payment.paymentSchema import PaymentRequest,ConfirmDeliveryRequest
 from models.users.usersModel import PaymentIntent, PaymentStatus
-
-
+from schemas.user.usersSchema import UserOut
+from apps.users.auth import get_current_user 
 
 router = APIRouter(
     tags=["Payment"]
 )
 
 
-
-
-
-
 @router.post("/create-payment-intent/")
-async def create_payment_intent(payment_request: PaymentRequest, db: Session = Depends(get_db)):
+async def create_payment_intent(payment_request: PaymentRequest, db: Session = Depends(get_db),current_user: UserOut = Depends(get_current_user)):
     try:
         payment_intent = stripe.stripe.PaymentIntent.create(
             amount=payment_request.amount,
@@ -54,7 +50,7 @@ async def create_payment_intent(payment_request: PaymentRequest, db: Session = D
 
 
 @router.post("/confirm-delivery/{order_id}")
-async def confirm_delivery(order_id:str, db: Session = Depends(get_db)):
+async def confirm_delivery(order_id:str, db: Session = Depends(get_db),current_user: UserOut = Depends(get_current_user)):
     order = db.query(Orders).filter(Orders.order_id == order_id).first()
     if not order:
         raise HTTPException(status_code=400, detail="payment has not been received for this order")

@@ -1,16 +1,32 @@
 from config.database import Base
-from sqlalchemy import Column, Enum, String,Numeric,JSON,Boolean,Date,ForeignKey,Integer
+from sqlalchemy import Column, Enum, String,Numeric,JSON,Boolean,Date,ForeignKey,Integer,DateTime,event,Text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql.expression import text
 from sqlalchemy.orm import relationship
 from enum import Enum 
 from sqlalchemy.sql.sqltypes import Enum as PgEnum
-
+from sqlalchemy.ext.declarative import declared_attr
 
 
 class OrderType(str, Enum):
     budget = "budget"
     quote = "quote"
+
+
+def update_users_is_verified(mapper, connection, target):
+    if target.email_is_verified and target.profile_picture != "N/A" and target.security_question_status:
+        target.is_verified = True
+    else:
+        target.is_verified = False
+
+
+
+def update_serviceProvider_is_verified(mapper, connection, target):
+    if target.email_is_verified and target.profile_picture != "N/A" and target.stripe_account != "N/A" and target.security_question_status:
+        target.is_verified = True
+    else:
+        target.is_verified = False
+
 
 
 class Users(Base):
@@ -26,9 +42,21 @@ class Users(Base):
     country = Column(String,nullable=False,server_default='N/A')
     password = Column(String,nullable=False)
     phone_no = Column(String,nullable=False)
+    profile_picture = Column(String, nullable=False, server_default="N/A")
+    email_is_verified = Column(Boolean,nullable=True,server_default='false')
     is_verified = Column(Boolean,nullable=True,server_default='false')
     user_type = Column(String,nullable=False, server_default="user")
+    otp = Column(Integer)
+    otp_expiry = Column(DateTime)
+    security_question_1 = Column(Text, nullable=True)
+    security_answer_1 = Column(String, nullable=True)
+    security_question_2 = Column(Text, nullable=True)
+    security_answer_2 = Column(String, nullable=True)
+    security_question_status = Column(Boolean,nullable=True,server_default='false')
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default= text('now()'))
+
+event.listen(Users, 'before_insert', update_users_is_verified)
+event.listen(Users, 'before_update', update_users_is_verified)
 
 
 
@@ -54,11 +82,22 @@ class ServiceProvider(Base):
     rating = Column(String,nullable=False,server_default="N/A")
     gender = Column(String,nullable=False)
     user_type = Column(String,nullable=True, server_default="service provider")
+    profile_picture = Column(String, nullable=False, server_default="N/A")
+    email_is_verified = Column(Boolean,nullable=True,server_default='false')
     is_verified = Column(Boolean,nullable=True,server_default='false')
-    phone_no = Column(Numeric,nullable=False, unique=True)
+    otp = Column(Integer)
+    otp_expiry = Column(DateTime)
+    security_question_1 = Column(Text, nullable=True)
+    security_answer_1 = Column(String, nullable=True)
+    security_question_2 = Column(Text, nullable=True)
+    security_answer_2 = Column(String, nullable=True)
+    security_question_status = Column(Boolean,nullable=True,server_default='false')
+    phone_no = Column(String,nullable=False, unique=True)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default= text('now()'))
 
 
+event.listen(ServiceProvider, 'before_insert', update_serviceProvider_is_verified)
+event.listen(ServiceProvider, 'before_update', update_serviceProvider_is_verified)
 
 
 
@@ -172,3 +211,91 @@ class PaymentIntent(Base):
     customer_email = Column(String, nullable=False)
     transporter_email = Column(String, nullable=False)
     status = Column(String, nullable=False)
+
+
+
+class ChatRoom(Base):
+    __tablename__ = 'chat_rooms'
+
+    room_id = Column(Integer, primary_key=True, autoincrement=True)
+    sender_id = Column(String, nullable=False)
+    sender_type = Column(String, nullable=False)
+    receiver_id = Column(String, nullable=False)
+    receiver_type = Column(String, nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
+
+    @declared_attr
+    def sender(cls):
+        return relationship(
+            'Users',
+            primaryjoin='and_(ChatRoom.sender_id == Users.user_id, ChatRoom.sender_type == "user")',
+            foreign_keys=[cls.sender_id],
+            uselist=False,overlaps="sender_provider"
+        )
+
+    @declared_attr
+    def sender_provider(cls):
+        return relationship(
+            'ServiceProvider',
+            primaryjoin='and_(ChatRoom.sender_id == ServiceProvider.service_provider_id, ChatRoom.sender_type == "service_provider")',
+            foreign_keys=[cls.sender_id],
+            uselist=False,
+            overlaps="sender"
+        )
+
+    @declared_attr
+    def receiver(cls):
+        return relationship(
+            'Users',
+            primaryjoin='and_(ChatRoom.receiver_id == Users.user_id, ChatRoom.receiver_type == "user")',
+            foreign_keys=[cls.receiver_id],
+            uselist=False,
+            overlaps="receiver_provider"
+        )
+
+    @declared_attr
+    def receiver_provider(cls):
+        return relationship(
+            'ServiceProvider',
+            primaryjoin='and_(ChatRoom.receiver_id == ServiceProvider.service_provider_id, ChatRoom.receiver_type == "service_provider")',
+            foreign_keys=[cls.receiver_id],
+            uselist=False,
+            overlaps="receiver"
+        )
+
+    messages = relationship("Messages", back_populates="chat_room")
+
+
+
+
+class Messages(Base):
+    __tablename__ = 'messages'
+
+    message_id = Column(Integer, primary_key=True, autoincrement=True)
+    chat_room_id = Column(Integer, ForeignKey('chat_rooms.room_id'), nullable=False)
+    sender_id = Column(String, nullable=False)
+    sender_type = Column(String, nullable=False)
+    content = Column(String, nullable=False)
+    timestamp = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
+
+    chat_room = relationship("ChatRoom", back_populates="messages")
+
+    @declared_attr
+    def sender(cls):
+        return relationship(
+            'Users',
+            primaryjoin='and_(Messages.sender_id == Users.user_id, Messages.sender_type == "user")',
+            foreign_keys=[cls.sender_id],
+            uselist=False,
+            overlaps="sender_provider"
+        )
+
+    @declared_attr
+    def sender_provider(cls):
+        return relationship(
+            'ServiceProvider',
+            primaryjoin='and_(Messages.sender_id == ServiceProvider.service_provider_id, Messages.sender_type == "service_provider")',
+            foreign_keys=[cls.sender_id],
+            uselist=False,
+            overlaps="sender"
+        )

@@ -54,6 +54,9 @@ async def get_all_user( db: Session = Depends(get_db)):
   user_details = db.query(Users).all()
   return user_details
 
+
+
+
 """
 To fetch a single user
 """
@@ -69,17 +72,19 @@ async def get_user(id: str, db: Session = Depends(get_db),current_user: UserOut 
 To Update a single user
 """
 
-@router.put('/user/{user_id}', response_model=UserOut)
+@router.patch('/user/update_details', response_model=UserOut)
 async def update_user(
-    user_id: str,
     user_update: UserUpdate,
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user)
 ):
-    existing_user = db.query(Users).filter(Users.user_id == user_id).first()
-
+    if current_user.user_type != "user" :
+       raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f'Only users are allowed')
+    
+    existing_user = db.query(Users).filter(Users.user_id == current_user.user_id).first()
+    
     if not existing_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {user_id} not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {current_user.user_id} not found")
 
     # Update user details
     for field, value in user_update.dict().items():

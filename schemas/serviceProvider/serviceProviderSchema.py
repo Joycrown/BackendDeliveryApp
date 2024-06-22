@@ -25,8 +25,7 @@ class ServiceProviderIn(BaseModel):
 class ServiceProviderUpdate(BaseModel):
 
     full_name: Optional[str]
-    type: Optional[str]
-    phone_no: Optional [int]
+    phone_no: Optional [str]
     company_name: Optional[str]
     company_url: Optional[str]
     service_offered: Optional[str]
@@ -42,12 +41,14 @@ class ServiceProviderOut(BaseModel):
     full_name: str
     type: str
     email: str
-    phone_no: int
+    phone_no: str
     company_name: str
     company_url: str
     service_offered:str
     is_verified: bool
+    stripe_account:str
     rating: str
+    profile_picture:str
     gender: str
     city: str
     user_type: str
