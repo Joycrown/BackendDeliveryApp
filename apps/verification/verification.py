@@ -359,7 +359,6 @@ async def update_profile_picture(
             user = service_provider
 
         profile_picture_link = await profile_picture_upload(profile_picture)
-        print(profile_picture_link)
         user.profile_picture=profile_picture_link
         db.commit()
         return {"message": "Profile Picture Updated"}
