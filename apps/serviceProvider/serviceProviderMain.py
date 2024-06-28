@@ -4,6 +4,7 @@ from models.users.usersModel import Users, ServiceProvider
 from schemas.serviceProvider.serviceProviderSchema import ServiceProviderIn,ServiceProviderOut,ServiceProviderUpdate
 from config.database import get_db
 from sqlalchemy.orm import Session 
+from sqlalchemy.sql.expression import func
 from utils.users.utills import hash
 from typing import List
 from utils.users.email import account_purchased
@@ -42,11 +43,11 @@ async def new_user (user:ServiceProviderIn, db: Session = Depends(get_db)):
     db.add(new_account)
     db.commit()
     db.refresh(new_account)
-#     await account_purchased("Registration Successful", user.email, {
-#     "title": "Account Purchase Successful",
-#     "name": user.full_name,
+    await account_purchased("Registration Successful", user.email, {
+    "title": "Account Purchase Successful",
+    "name": user.full_name,
     
-#   })
+  })
     return  new_account
 
 """
@@ -56,6 +57,20 @@ To fetch all users
 async def get_all_user( db: Session = Depends(get_db)):
   user_details = db.query(ServiceProvider).all()
   return user_details
+
+
+"""
+To fetch 5 random service providers
+"""
+@router.get('/random_service_providers', response_model=List[ServiceProviderOut])
+async def get_random_service_providers(db: Session = Depends(get_db)):
+    random_service_providers = db.query(ServiceProvider).order_by(func.random()).limit(5).all()
+    if not random_service_providers:
+        raise HTTPException(status_code=404, detail="No service providers found")
+    return random_service_providers
+
+
+
 
 """
 To fetch a single user

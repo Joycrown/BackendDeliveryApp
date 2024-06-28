@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from config.database import get_db
 from config import stripe
 from models.users.usersModel import ServiceProvider,Orders
-from schemas.payment.paymentSchema import PaymentRequest,ConfirmDeliveryRequest
+from schemas.payment.paymentSchema import PaymentRequest,CustomerCreateRequest
 from models.users.usersModel import PaymentIntent, PaymentStatus
 from schemas.user.usersSchema import UserOut
 from apps.users.auth import get_current_user 
@@ -79,4 +79,12 @@ async def confirm_delivery(order_id:str, db: Session = Depends(get_db),current_u
 
 
 
-
+@router.post("/create-test-customer")
+async def create_test_customer(request: CustomerCreateRequest):
+    try:
+        # Create a test customer in Stripe
+        customer = stripe.stripe.Customer.create(description=request.description)
+        return {"customer_id": customer.id, "description": customer.description}
+    except stripe.stripe.error.StripeError as e:
+        # Handle Stripe errors
+        raise HTTPException(status_code=400, detail=str(e))

@@ -8,6 +8,8 @@ from apps.users.auth import get_current_user
 from schemas.serviceProvider.serviceProviderSchema import ServiceProviderOut
 from schemas.user.usersSchema import UserOut
 from fastapi_socketio import SocketManager
+from sqlalchemy.orm import aliased
+from sqlalchemy.sql import func
 
 
 router = APIRouter(
@@ -19,7 +21,11 @@ socket_manager = SocketManager(app=router, mount_location='/ws')
 
 
 @router.post("/create_chat_room/", response_model=ChatRoomResponse)
-async def create_chat_room(chat_room: ChatRoomCreate, db: Session = Depends(get_db), current_user: Union[UserOut, ServiceProviderOut] = Depends(get_current_user)):
+async def create_chat_room(
+    chat_room: ChatRoomCreate, 
+    db: Session = Depends(get_db), 
+    current_user: Union[UserOut, ServiceProviderOut] = Depends(get_current_user)
+):
     sender_id = current_user.user_id if hasattr(current_user, 'user_id') else current_user.service_provider_id
     sender_type = "user" if hasattr(current_user, 'user_id') else "service_provider"
 
@@ -35,6 +41,38 @@ async def create_chat_room(chat_room: ChatRoomCreate, db: Session = Depends(get_
             detail="Receiver not found"
         )
 
+    # Check if chat room already exists in either direction
+    existing_chat_room = db.query(ChatRoom).filter(
+        (ChatRoom.sender_id == sender_id) &
+        (ChatRoom.sender_type == sender_type) &
+        (ChatRoom.receiver_id == chat_room.receiver_id) &
+        (ChatRoom.receiver_type == chat_room.receiver_type)
+    ).first()
+
+    if not existing_chat_room:
+        existing_chat_room = db.query(ChatRoom).filter(
+            (ChatRoom.sender_id == chat_room.receiver_id) &
+            (ChatRoom.sender_type == chat_room.receiver_type) &
+            (ChatRoom.receiver_id == sender_id) &
+            (ChatRoom.receiver_type == sender_type)
+        ).first()
+
+    if existing_chat_room:
+        sender_details = UserOut.model_validate(current_user) if sender_type == "user" else ServiceProviderOut.model_validate(current_user)
+        receiver_details = UserOut.model_validate(receiver) if chat_room.receiver_type == "user" else ServiceProviderOut.model_validate(receiver)
+        
+        return ChatRoomResponse(
+            room_id=existing_chat_room.room_id,
+            sender_id=existing_chat_room.sender_id,
+            sender_type=existing_chat_room.sender_type,
+            receiver_id=existing_chat_room.receiver_id,
+            receiver_type=existing_chat_room.receiver_type,
+            created_at=existing_chat_room.created_at,
+            sender=sender_details,
+            receiver=receiver_details
+        )
+
+    # Create a new chat room
     db_chat_room = ChatRoom(
         sender_id=sender_id,
         sender_type=sender_type,
@@ -133,20 +171,35 @@ async def get_messages(chat_room_id: int, db: Session = Depends(get_db),current_
 
 
 
+
+
 @router.get("/my_chat_rooms/", response_model=List[ChatRoomResponse])
 async def get_my_chat_rooms(db: Session = Depends(get_db), current_user: Union[UserOut, ServiceProviderOut] = Depends(get_current_user)):
     user_id = current_user.user_id if hasattr(current_user, 'user_id') else current_user.service_provider_id
     user_type = "user" if hasattr(current_user, 'user_id') else "service_provider"
 
-    # Query chat rooms where the current user is either the sender or the receiver
-    chat_rooms = db.query(ChatRoom).filter(
-        (ChatRoom.sender_id == user_id) | 
-        (ChatRoom.receiver_id == user_id)
-    ).all()
+    # Subquery to get the last message for each chat room
+    last_message_subquery = (
+        db.query(Messages.chat_room_id, func.max(Messages.timestamp).label('last_message_time'))
+        .group_by(Messages.chat_room_id)
+        .subquery()
+    )
+
+    # Alias for the message table to join with the last message subquery
+    last_message_alias = aliased(Messages)
+
+    # Query chat rooms with the last message
+    chat_rooms_with_last_message = (
+        db.query(ChatRoom, last_message_alias)
+        .outerjoin(last_message_subquery, ChatRoom.room_id == last_message_subquery.c.chat_room_id)
+        .outerjoin(last_message_alias, (last_message_alias.chat_room_id == ChatRoom.room_id) & (last_message_alias.timestamp == last_message_subquery.c.last_message_time))
+        .filter((ChatRoom.sender_id == user_id) | (ChatRoom.receiver_id == user_id))
+        .all()
+    )
 
     chat_room_responses = []
 
-    for chat_room in chat_rooms:
+    for chat_room, last_message in chat_rooms_with_last_message:
         # Fetch the sender details
         if chat_room.sender_type == "user":
             sender = db.query(Users).filter(Users.user_id == chat_room.sender_id).first()
@@ -163,6 +216,20 @@ async def get_my_chat_rooms(db: Session = Depends(get_db), current_user: Union[U
             receiver = db.query(ServiceProvider).filter(ServiceProvider.service_provider_id == chat_room.receiver_id).first()
             receiver_details = ServiceProviderOut.model_validate(receiver)
 
+        last_message_details = None
+        if last_message:
+            # Determine the sender of the last message
+            last_message_sender = sender_details if last_message.sender_id == chat_room.sender_id else receiver_details
+
+            last_message_details = MessageResponse(
+                message_id=last_message.message_id,
+                chat_room_id=chat_room.room_id,
+                sender_id=last_message.sender_id,
+                content=last_message.content,
+                timestamp=last_message.timestamp,
+                sender=last_message_sender
+            )
+
         chat_room_responses.append(ChatRoomResponse(
             room_id=chat_room.room_id,
             sender_id=chat_room.sender_id,
@@ -171,17 +238,12 @@ async def get_my_chat_rooms(db: Session = Depends(get_db), current_user: Union[U
             receiver_type=chat_room.receiver_type,
             created_at=chat_room.created_at,
             sender=sender_details,
-            receiver=receiver_details
+            receiver=receiver_details,
+            last_message=last_message_details,
         ))
 
     return chat_room_responses
 
 
-@socket_manager.on('join')
-async def join_room(sid, message):
-    await socket_manager.enter_room(sid, message['room'])
 
-@socket_manager.on('leave')
-async def leave_room(sid, message):
-    await socket_manager.leave_room(sid, message['room'])
 

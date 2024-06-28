@@ -15,3 +15,5 @@ class ConfirmDeliveryRequest(BaseModel):
     payment_intent_id: str
    
 
+class CustomerCreateRequest(BaseModel):
+    description: str

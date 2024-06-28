@@ -11,7 +11,8 @@ from apps.serviceProvider.orders import serviceProviderQuote
 from apps.escrowPayment import payment
 from apps.verification import verification
 from apps.chat import chat
-from fastapi_socketio import SocketManager
+import socketio
+from fastapi.staticfiles import StaticFiles
 
 
 app = FastAPI(
@@ -20,6 +21,8 @@ app = FastAPI(
     version="1.0.0",
     
 )
+
+app.mount("/staticfiles", StaticFiles(directory="staticfiles"), name="staticfiles")
 
 
 origins = ["*"]
@@ -34,7 +37,6 @@ app.add_middleware(
 )
 
 
-socket_manager = SocketManager(app=app, mount_location='/ws')
 
 
 app.include_router(main.router)
@@ -50,12 +52,37 @@ app.include_router(chat.router)
 
 
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+# Create a Socket.IO server
+sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins=[])
+socket_app = socketio.ASGIApp(sio, app)
 
+@sio.event
+async def connect(sid, environ):
+    print(f"Client connected: {sid}")
 
-@app.get('/testing')
-def test_db(db: Session = Depends(get_db)):
-  user= db.query(Users).all()
-  return user
+@sio.event
+async def disconnect(sid):
+    print(f"Client disconnected: {sid}")
+
+@sio.event
+async def join_room(sid, data):
+    room = data['room']
+    sio.enter_room(sid, room)
+    print(f"Client {sid} joined room {room}")
+
+@sio.event
+async def leave_room(sid, data):
+    room = data['room']
+    sio.leave_room(sid, room)
+    print(f"Client {sid} left room {room}")
+
+@sio.event
+async def send_message(sid, data):
+    room = data['room']
+    message = data['message']
+    await sio.emit('new_message', {'message': message}, room=room, skip_sid=sid)
+
+# Include your existing routes here
+
+# Use the Socket.IO app as the main application
+app = socket_app

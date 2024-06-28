@@ -25,7 +25,6 @@ class UserUpdate(BaseModel):
 
 
 
-
 class UserOut(BaseModel):
 
     user_id: str
@@ -39,6 +38,8 @@ class UserOut(BaseModel):
     company_name: str
     company_url: str
     is_verified:bool
+    email_is_verified:bool
+    security_question_status:bool
     
 
 

@@ -81,7 +81,7 @@ def refresh_token(
 """
 To Update User's Password
 """
-@router.put('/update-password/')
+@router.patch('/update_password')
 async def update_password(
     password_data: UpdatePassword,
     current_user: Union[Users, ServiceProvider] = Depends(get_current_user),

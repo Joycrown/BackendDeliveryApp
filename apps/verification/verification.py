@@ -38,15 +38,16 @@ async def verify_account(
     db: Session = Depends(get_db)
 ):
     try:
+      id = current_user.user_id if hasattr(current_user, 'user_id') else current_user.service_provider_id
       if current_user.is_verified:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Account already verified")
       
       otp, expiry_time = generate_otp()
       
-      user = db.query(Users).filter(Users.user_id == current_user.user_id).first()
+      user = db.query(Users).filter(Users.user_id == id).first()
       if not user:
         # If not a user, check if the email belongs to a service provider
-        service_provider = db.query(ServiceProvider).filter(ServiceProvider.service_provider_id == current_user.service_provider_id).first()
+        service_provider = db.query(ServiceProvider).filter(ServiceProvider.service_provider_id == id).first()
         if not service_provider:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -76,34 +77,38 @@ Verification of OTP
 
 @router.patch('/account/verify_otp')
 async def verify_otp(otp:int, current_user: Union[UserOut, ServiceProviderOut] = Depends(get_current_user), db: Session = Depends(get_db)):
-  if current_user.is_verified:
-    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Account already verified")
-  
-  user = db.query(Users).filter(Users.user_id == current_user.user_id).first()
-  if not user:
-    # If not a user, check if the email belongs to a service provider
-    service_provider = db.query(ServiceProvider).filter(ServiceProvider.service_provider_id == current_user.service_provider_id).first()
-    if not service_provider:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    user = service_provider
-  if user.otp != otp:
-      raise HTTPException(status_code=400, detail="Invalid OTP")
-  
-  if datetime.utcnow() > user.otp_expiry:
-      raise HTTPException(status_code=400, detail="OTP has expired")
-  
+  try:
+    id = current_user.user_id if hasattr(current_user, 'user_id') else current_user.service_provider_id
+    if current_user.is_verified:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Account already verified")
+    
+    user = db.query(Users).filter(Users.user_id == id).first()
+    if not user:
+        # If not a user, check if the email belongs to a service provider
+        service_provider = db.query(ServiceProvider).filter(ServiceProvider.service_provider_id == id).first()
+        if not service_provider:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        user = service_provider
+    if user.otp != otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    
+    if datetime.utcnow() > user.otp_expiry:
+        raise HTTPException(status_code=400, detail="OTP has expired")
+    
 
-  user.email_is_verified = True
-  user.otp = None
-  user.otp_expiry = None
-  db.commit()
+    user.email_is_verified = True
+    user.otp = None
+    user.otp_expiry = None
+    db.commit()
 
-  db.refresh(user)
-  
-  return {"message": "Account verified successfully"}
+    db.refresh(user)
+    
+    return {"message": "Account verified successfully"}
+  except Exception as e:
+    raise HTTPException(status_code=400, detail=str(e))
   
 
 """""
@@ -115,9 +120,14 @@ Security Question
 def update_security_questions(
     security_questions: SecurityQuestionsUpdate,
     db: Session = Depends(get_db),
-    current_user: Union[Users,ServiceProviderOut] = Depends(get_current_user)
+    current_user: ServiceProviderOut = Depends(get_current_user)
 ):
     try:
+      if current_user.user_type != "service provider":
+        raise HTTPException(
+              status_code=status.HTTP_400_BAD_REQUEST,
+              detail="No access for this user type"
+          ) 
       if len(security_questions.security_questions) != 2:
           raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -148,6 +158,85 @@ def update_security_questions(
 
 
 """"
+To update the stripe ID
+"""""
+
+@router.patch("/account/stripe_id")
+def set_up_stripe_details(
+    stripe_id: str,
+    db: Session = Depends(get_db),
+    current_user: ServiceProviderOut = Depends(get_current_user)
+):
+    try:
+        if current_user.user_type != "service provider":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No access for this user type"
+            ) 
+        service_provider = db.query(ServiceProvider).filter(ServiceProvider.service_provider_id == current_user.service_provider_id).first()
+        if not service_provider:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+    
+        service_provider.stripe_account =stripe_id
+        service_provider.stripeId_status = True
+        db.commit()
+        return {"message": "Stripe Id Updated successfully"}
+    
+    except Exception as e:
+      raise HTTPException(status_code=400, detail=str(e))
+    
+
+"""""
+Security Question
+"""""
+
+    
+@router.put("/account/update/security-questions")
+def update_security_questions(
+    security_questions: SecurityQuestionsUpdate,
+    db: Session = Depends(get_db),
+    current_user: ServiceProviderOut = Depends(get_current_user)
+):
+    try:
+     
+      if current_user.user_type != "service provider":
+        raise HTTPException(
+              status_code=status.HTTP_400_BAD_REQUEST,
+              detail="No access for this user type"
+          ) 
+      if len(security_questions.security_questions) != 2:
+          raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Exactly 3 security questions and answers are required"
+        )
+      service_provider = db.query(ServiceProvider).filter(ServiceProvider.service_provider_id == current_user.service_provider_id).first()
+      if not service_provider:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+      user = service_provider
+        # If not a user, check if the email belongs to a service provider
+        
+      # Update security questions and answers
+      user.security_question_1 = security_questions.security_questions[0].question
+      user.security_answer_1 = hash(security_questions.security_questions[0].answer)
+      user.security_question_2 = security_questions.security_questions[1].question
+      user.security_answer_2 = hash(security_questions.security_questions[1].answer)
+      user.security_question_status = True
+      db.commit()
+      
+      return {"message": "Security questions updated successfully"}
+    except Exception as e:
+      raise HTTPException(status_code=400, detail=str(e))
+
+
+
+""""
 security check
 """""
 
@@ -155,25 +244,26 @@ security check
 def security_check_and_stripe_update(
     security_check: SecurityCheck,
     db: Session = Depends(get_db),
-    current_user: Union[Users,ServiceProviderOut] = Depends(get_current_user)
+    current_user: ServiceProviderOut = Depends(get_current_user)
 ):
     try:
+      if current_user.user_type != "service provider":
+        raise HTTPException(
+              status_code=status.HTTP_400_BAD_REQUEST,
+              detail="No access for this user type"
+          )  
       if len(security_check.answers) != 2:
           raise HTTPException(
               status_code=status.HTTP_400_BAD_REQUEST,
               detail="Exactly 2 security answers are required"
           )
-
-      user = db.query(Users).filter(Users.user_id == current_user.user_id).first()
-      if not user:
-        # If not a user, check if the email belongs to a service provider
-        service_provider = db.query(ServiceProvider).filter(ServiceProvider.service_provider_id == current_user.service_provider_id).first()
-        if not service_provider:
+      service_provider = db.query(ServiceProvider).filter(ServiceProvider.service_provider_id == current_user.service_provider_id).first()
+      if not service_provider:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
-        user = service_provider
+      user = service_provider
 
       # Verify each answer
       correct_answers = 0
@@ -187,6 +277,7 @@ def security_check_and_stripe_update(
       if correct_answers == 2:
           if security_check.stripe_id:
              service_provider.stripe_account =security_check.stripe_id
+             db.commit()
              return {"message": "Stripe Id Updated successfully"}
           return {"message": "Security check passed"}
       else:
@@ -207,23 +298,29 @@ to fetch the security question of current user
 
 
 
-@router.get("/account/my_security_questions", response_model=List[SecurityQuestion])
+@router.get("/account/my_security_questions")
 def get_security_questions(
     db: Session = Depends(get_db),
-    current_user: Users = Depends(get_current_user)
+    current_user: ServiceProvider = Depends(get_current_user)
 ):
     try:
-       
-        user = db.query(Users).filter(Users.user_id == current_user.user_id).first()
-        if not user:
-        # If not a user, check if the email belongs to a service provider
-            service_provider = db.query(ServiceProvider).filter(ServiceProvider.service_provider_id == current_user.service_provider_id).first()
-            if not service_provider:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="User not found"
-                )
-            user = service_provider
+        if current_user.user_type != "service provider":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No access for this user type"
+            )
+        service_provider = db.query(ServiceProvider).filter(ServiceProvider.service_provider_id == current_user.service_provider_id).first()
+        if not service_provider:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        user = service_provider
+        if not user.security_question_status :
+           raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="You have not set your security questions"
+            )
 
         questions = [
             SecurityQuestion(question=user.security_question_1),
@@ -249,10 +346,11 @@ async def update_profile_picture(
     current_user: Union[ServiceProviderOut,UserOut] = Depends(get_current_user)
 ):
     try:
-        user = db.query(Users).filter(Users.user_id == current_user.user_id).first()
+        id = current_user.user_id if hasattr(current_user, 'user_id') else current_user.service_provider_id
+        user = db.query(Users).filter(Users.user_id == id).first()
         if not user:
         # If not a user, check if the email belongs to a service provider
-            service_provider = db.query(ServiceProvider).filter(ServiceProvider.service_provider_id == current_user.service_provider_id).first()
+            service_provider = db.query(ServiceProvider).filter(ServiceProvider.service_provider_id == id).first()
             if not service_provider:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,

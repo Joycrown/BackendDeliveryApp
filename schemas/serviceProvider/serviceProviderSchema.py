@@ -52,7 +52,9 @@ class ServiceProviderOut(BaseModel):
     gender: str
     city: str
     user_type: str
-    is_verified: bool
+    stripeId_status: bool
+    email_is_verified: bool
+    security_question_status:bool
     street_address: str
     country: str
 

@@ -92,6 +92,7 @@ class ServiceProvider(Base):
     security_question_2 = Column(Text, nullable=True)
     security_answer_2 = Column(String, nullable=True)
     security_question_status = Column(Boolean,nullable=True,server_default='false')
+    stripeId_status = Column(Boolean,nullable=True,server_default='false')
     phone_no = Column(String,nullable=False, unique=True)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default= text('now()'))
 
