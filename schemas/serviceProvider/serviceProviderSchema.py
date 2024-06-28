@@ -13,7 +13,7 @@ class ServiceProviderIn(BaseModel):
     country: str
     city: str
     street_address: str
-    phone_no: int
+    phone_no: str
     service_offered: str
     company_name: Optional[str]
     company_url: Optional[str]
