@@ -10,10 +10,16 @@ from schemas.serviceProvider.serviceProviderSchema import ServiceProviderOut
 from utils.users.email import password_rest_email
 from schemas.user.UserAuth import UpdatePassword, EmailReset,ResetPassword
 from typing import Union
+from config.environ import settings
 
 router = APIRouter(
     tags=["Users Auth"]
 )
+
+if settings.frontend_server == "false" :
+    url = settings.frontend_dev_server_host
+else:
+    url = settings.frontend_prod_server_host
 
 
 """
@@ -139,7 +145,8 @@ async def password_reset(email: EmailReset, db: Session = Depends(get_db)):
             )
 
     reset_token = create_password_reset_token(data={"email": user.email, "user_type": user_type})
-    reset_link = f"http://localhost:5173/set_password/{reset_token}"
+    reset_link = f"{url}/set_password{reset_token}/"
+   
     await password_rest_email("Password Reset", user.email,{
       "title": "Password Rest",
       "name": user.full_name,

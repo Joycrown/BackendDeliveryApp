@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     local_server_host :str
     production_server : str 
     production_server_host : str 
+    frontend_server: str
+    frontend_dev_server_host: str
+    frontend_prod_server_host:str
    
     
     class Config:
