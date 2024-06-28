@@ -145,7 +145,7 @@ async def password_reset(email: EmailReset, db: Session = Depends(get_db)):
             )
 
     reset_token = create_password_reset_token(data={"email": user.email, "user_type": user_type})
-    reset_link = f"{url}/set_password{reset_token}/"
+    reset_link = f"{url}/set_password/{reset_token}/"
    
     await password_rest_email("Password Reset", user.email,{
       "title": "Password Rest",
