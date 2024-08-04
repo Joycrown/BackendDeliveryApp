@@ -14,7 +14,3 @@ async def send_email(to_email, subject, body):
         await server.login('joycrowntech@gmail.com', 'neso ljxo tlkp plvg')
         await server.send_message(msg)
 
-# @app.post("/send-email")
-# async def send_email_endpoint(to_email: str, subject: str, body: str):
-#     await send_email(to_email, subject, body)
-#     return {"message": "Email sent successfully"}

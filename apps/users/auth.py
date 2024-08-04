@@ -64,7 +64,6 @@ def refresh_token(
 ):
     token_data = verify_refresh_token(refresh_token)
     user_id = token_data.id
-    email = token_data.email
 
     # Check if the token belongs to a user
     user = db.query(Users).filter(Users.user_id == user_id).first()

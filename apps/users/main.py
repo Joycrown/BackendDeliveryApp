@@ -23,7 +23,7 @@ User sign up
 """
 def generate_custom_id(prefix: str, n_digits: int) -> str:
   """Generate a custom ID with a given prefix and a certain number of random digits"""
-  random_digits = ''.join([str(random.randint(0,9)) for i in range(n_digits)])
+  random_digits = ''.join([str(random.randint(0,9)) for _ in range(n_digits)])
   return f"{prefix}{random_digits}"
 
 
@@ -31,7 +31,7 @@ def generate_custom_id(prefix: str, n_digits: int) -> str:
 async def new_user (user:UserIn, db: Session = Depends(get_db)):
     check_email= db.query(Users).filter(Users.email == user.email).first()
     if check_email : 
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail=f"Email already in use")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Email already in use")
     hashed_password = hash(user.password)
     user.password = hashed_password
     custom_id = generate_custom_id("FR", 5)
@@ -79,7 +79,7 @@ async def update_user(
     current_user: UserOut = Depends(get_current_user)
 ):
     if current_user.user_type != "user" :
-       raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f'Only users are allowed')
+       raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Only users are allowed')
     
     existing_user = db.query(Users).filter(Users.user_id == current_user.user_id).first()
     
@@ -102,7 +102,7 @@ async def delete_order( db: Session = Depends(get_db)):
     # Check if the order exists
     users = db.query(Users).all()
     if not users:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No user found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No user found")
 
     # Check if the current user is the owner of the order (optional)
   
@@ -111,7 +111,7 @@ async def delete_order( db: Session = Depends(get_db)):
       db.delete(user)
     db.commit()
 
-    return {"message": f"Users deleted successfully"}
+    return {"message": "Users deleted successfully"}
 
 
 

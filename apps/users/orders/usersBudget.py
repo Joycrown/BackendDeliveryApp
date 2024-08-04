@@ -18,10 +18,12 @@ router= APIRouter(
     tags=[" User Budget"]
 )
 
+NO_PERMISSION = "Not allowed"
+NO_PERMISSION_TO_VIEW = "You don't have permission for this action"
 
 def generate_custom_id(prefix: str, n_digits: int) -> str:
     """Generate a custom ID with a given prefix and a certain number of random digits"""
-    random_digits = ''.join([str(random.randint(0,9)) for i in range(n_digits)])
+    random_digits = ''.join([str(random.randint(0,9)) for _ in range(n_digits)])
     return f"{prefix}{random_digits}"
 
 
@@ -37,7 +39,7 @@ async def create_order(order: OrderIn, db: Session = Depends(get_db),current_use
    
     # if current_user.user_type  == "service provider":
     if current_user.user_type  == "service provider":
-        raise HTTPException(status_code=403, detail="Not allowed")
+        raise HTTPException(status_code=403, detail=NO_PERMISSION)
     rejectedServiceProvider = ["none"]
     # Check if the order has a budget
     if order.is_budget:
@@ -65,8 +67,7 @@ async def get_all_orders_reacted_to_for_current_user(db:Session=Depends(get_db),
         total_count = len(budget) + len(quote)
     else: 
         raise HTTPException(status_code=404, detail="No orders found")
-    # if not orders:
-    #     raise HTTPException(status_code=404, detail="No orders found")
+
     return {"budget": budget, "quote": quote, "length":total_count}
 
 
@@ -146,7 +147,7 @@ async def delete_order(order_id: str, db: Session = Depends(get_db), current_use
     # Check if the order exists
     order = db.query(Orders).filter(Orders.order_id == order_id).first()
     if current_user.user_type  != "user":
-        raise HTTPException(status_code=403, detail="Not allowed")
+        raise HTTPException(status_code=403, detail=NO_PERMISSION)
    
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No order with ID: {order_id} found")
@@ -194,7 +195,7 @@ async def accept_item_by_current_user(
         if order.order_type != OrderType.quote:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only quote orders can have quotes")
         if quote.client_id != current_user.user_id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"You cannot accept this quote")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="You cannot accept this quote")
         order.is_assigned = True
         order.assigned_to = quote.service_provider_id
         quote.is_accepted = True
@@ -257,10 +258,10 @@ To get budget from the budget table reacted to by service_provider
 @router.get("/budgets/accepted_service_provider", response_model=List[BudgetOut])
 async def get_all_budgets_reacted_to(db:Session=Depends(get_db),current_user: UserOut = Depends(get_current_user)):
     if current_user.user_type  != "user":
-        raise HTTPException(status_code=403, detail="Not allowed")
+        raise HTTPException(status_code=403, detail=NO_PERMISSION)
     budget = db.query(Budget).filter(Budget.client_id == current_user.user_id).all()
     if not budget:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No response from Service Provider on your request ")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No response from Service Provider on your request ")
     return budget
 
 
@@ -271,7 +272,7 @@ To fetch assigned orders for a user/client
 @router.get("/orders/myAssignedOrders", response_model=List[OrderOut])
 async def get_all_budget_orders_for_current_user(db:Session=Depends(get_db),current_user: UserOut = Depends(get_current_user)):
     if current_user.user_type != "user":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission for this action")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=NO_PERMISSION_TO_VIEW)
     orders = db.query(Orders).order_by(desc(Orders.created_at)).filter(and_(Orders.client_id == current_user.user_id, Orders.status =="Pending")).all()
     if not orders:
         raise HTTPException(status_code=404, detail="No current order found")
@@ -285,7 +286,7 @@ To fetch completed orders for a user/client
 @router.get("/orders/myCompletedOrders", response_model=List[OrderOut])
 async def get_all_budget_orders_for_current_user(db:Session=Depends(get_db),current_user: UserOut = Depends(get_current_user)):
     if current_user.user_type != "user":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission for this action")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=NO_PERMISSION_TO_VIEW)
     orders = db.query(Orders).order_by(desc(Orders.created_at)).filter(and_(Orders.client_id == current_user.user_id, Orders.status =="Completed")).all()
     if not orders:
         raise HTTPException(status_code=404, detail="No current order found")
@@ -299,7 +300,7 @@ To complete orders by users
 @router.post("/orders/Complete_Orders/{order_id}", response_model=OrderOut)
 async def to_complete_orders_by_user(order_id: str,db:Session=Depends(get_db),current_user: UserOut = Depends(get_current_user)):
     if current_user.user_type != "user":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission for this action")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=NO_PERMISSION_TO_VIEW)
     order = db.query(Orders).filter(Orders.order_id == order_id).first()
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No response made with this ID: {order_id}")

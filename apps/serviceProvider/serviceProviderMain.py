@@ -24,7 +24,7 @@ Service Provider sign up
 """
 def generate_custom_id(prefix: str, n_digits: int) -> str:
     """Generate a custom ID with a given prefix and a certain number of random digits"""
-    random_digits = ''.join([str(random.randint(0,9)) for i in range(n_digits)])
+    random_digits = ''.join([str(random.randint(0,9)) for _ in range(n_digits)])
     return f"{prefix}{random_digits}"
 
 
@@ -33,9 +33,9 @@ async def new_user (user:ServiceProviderIn, db: Session = Depends(get_db)):
     check_email= db.query(ServiceProvider).filter(ServiceProvider.email == user.email).first()
     check_phone= db.query(ServiceProvider).filter(ServiceProvider.phone_no == user.phone_no).first()
     if check_email : 
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail=f"Email already in use")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Email already in use")
     if check_phone : 
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail=f"Phone no already in use")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Phone no already in use")
     hashed_password = hash(user.password)
     user.password = hashed_password
     custom_id = generate_custom_id("SP", 5)

@@ -21,7 +21,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
 
 
 
-def verify_access_token_password_reset(token: str, credentials_exception, db: Session):
+def verify_access_token_password_reset(token: str, credentials_exception):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("email")

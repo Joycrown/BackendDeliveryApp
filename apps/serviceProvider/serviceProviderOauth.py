@@ -32,7 +32,6 @@ def verify_access_token_password_reset(token: str, credentials_exception):
     try:
         
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        # id = payload.get("user_id")
         email = payload.get("email")
         if email is None:
             raise credentials_exception
@@ -46,11 +45,11 @@ def verify_access_token(token: str, credentials_exception):
     try:
         
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        id = payload.get("service_provider_id")
+        provider_id = payload.get("service_provider_id")
         email = payload.get("email")
         if email is None:
             raise credentials_exception
-        token_data = TokenData(id=id, email=email)
+        token_data = TokenData(id=provider_id, email=email)
         return token_data
     except JWTError:
         raise credentials_exception
