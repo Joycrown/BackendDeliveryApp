@@ -176,7 +176,7 @@ async def get_messages(chat_room_id: int, db: Session = Depends(get_db),current_
 @router.get("/my_chat_rooms/", response_model=List[ChatRoomResponse])
 async def get_my_chat_rooms(db: Session = Depends(get_db), current_user: Union[UserOut, ServiceProviderOut] = Depends(get_current_user)):
     user_id = current_user.user_id if hasattr(current_user, 'user_id') else current_user.service_provider_id
-    user_type = "user" if hasattr(current_user, 'user_id') else "service_provider"
+    
 
     # Subquery to get the last message for each chat room
     last_message_subquery = (
