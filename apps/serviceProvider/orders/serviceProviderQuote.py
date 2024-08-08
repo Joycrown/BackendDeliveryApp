@@ -18,7 +18,7 @@ router= APIRouter(
 
 def generate_custom_id(prefix: str, n_digits: int) -> str:
     """Generate a custom ID with a given prefix and a certain number of random digits"""
-    random_digits = ''.join([str(random.randint(0,9)) for i in range(n_digits)])
+    random_digits = ''.join([str(random.randint(0,9)) for _ in range(n_digits)])
     return f"{prefix}{random_digits}"
 
 
